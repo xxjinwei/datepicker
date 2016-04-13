@@ -1,0 +1,152 @@
+@root-classname: datepicker;
+
+// cell size
+@cell-width: 28px;
+@cell-height: 28px;
+
+// color
+@normal-color        : #333;
+@secondary-color     : #999;
+@disabled-color      : #ccc;
+@active-color        : #4497ff;
+@cell-hover-color    : #fff;
+@cell-hover-bgcolor  : #cae2fe;
+@default-border-color: #dfe2e3;
+
+.@{root-classname} {
+    position: absolute;
+    font-size: 12px;
+    line-height: 1;
+    color: @normal-color;
+    border: 1px solid @active-color;
+    user-select: none;
+}
+// header
+.@{root-classname}-header {
+    position: relative;
+    padding: 10px 0;
+    text-align: center;
+}
+// calendar
+.@{root-classname}-calendar {
+    td,
+    th {
+        width: @cell-width;
+        height: @cell-height;
+        text-align: center;
+        vertical-align: middle;
+    }
+    // day of week
+    .@{root-classname}-dayofweek th {
+        font-weight: normal;
+        color: @secondary-color;
+        border-top: 1px solid @default-border-color;
+        border-bottom: 1px solid @default-border-color;
+    }
+    td {
+        cursor: pointer;
+        &.hidden,
+        &:empty {
+            visibility: hidden;
+        }
+        &.disabled {
+            color: @disabled-color;
+            cursor: default;
+        }
+        &.selected,
+        &:not(.disabled):hover {
+            background-color: @cell-hover-bgcolor;
+            border-radius: 2px;
+        }
+        &:not(.disabled):hover{
+            color: @cell-hover-color;
+        }
+        &.inrange {
+            background-color: @cell-hover-bgcolor;
+            border-radius: none;
+        }
+    }
+}
+// style select
+.@{root-classname}-select {
+    position: relative;
+    display: inline-block;
+    padding: 3px 24px 3px 8px;
+    border: 1px solid @default-border-color;
+    &.@{root-classname}-year {
+        margin-right: 7px;
+        label {
+            width: 40px;
+        }
+    }
+    &.@{root-classname}-month {
+        label {
+            width: 26px;
+        }
+    }
+    // label
+    label {
+        display: block;
+        text-align: center;
+    }
+    // opacity select
+    select {
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+    }
+    // triangle
+    &:after {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        right: 8px;
+        top: 50%;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 4px 4px 0 4px;
+        border-color: #666666 transparent transparent transparent;
+        transform: translate(0, -50%);
+    }
+}
+// prev & next
+.@{root-classname}-prev,
+.@{root-classname}-next {
+    position: absolute;
+    width: 16px;
+    height: 20px;
+    cursor: pointer;
+    &:after {
+        position: absolute;
+        content: '';
+        display: inline-block;
+        top: 6px;
+        border-style: solid;
+    }
+}
+.@{root-classname}-prev {
+    left: 4px;
+    &:after {
+        left: 6px;
+        border-width: 4px 4px 4px 0;
+        border-color: transparent @normal-color transparent transparent;
+    }
+    &.disabled:after {
+        border-color: transparent @disabled-color transparent transparent;
+    }
+}
+.@{root-classname}-next {
+    right: 4px;
+    &:after {
+        right: 6px;
+        border-width: 4px 0 4px 4px;
+        border-color: transparent transparent transparent @normal-color;
+    }
+    &.disabled:after {
+        border-color: transparent transparent transparent @disabled-color;
+    }
+}
