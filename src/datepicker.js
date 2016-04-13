@@ -223,6 +223,11 @@
             this.fillDate()
         },
 
+        clearRange: function () {
+            this.endRange = null
+            this.fillDate()
+        },
+
         pickYear: function (year) {
             var range = this.yearRange
 
