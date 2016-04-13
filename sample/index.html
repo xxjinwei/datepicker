@@ -136,14 +136,15 @@
             d1.setDate(new Date('2016/04/06'))
 
             var d2 = new Datepicker({
-                field     : $('#d2'),
-                format    : 'yyyy-mm-dd',
+                field   : $('#d2'),
+                format  : 'yyyy-mm-dd',
                 // startRange: new Date('2016/04/06'),
                 // endRange  : new Date('2016/04/22'),
-                onShow    : function () { console.log('show')},
-                onClose   : function () { console.log('close')},
-                onDraw    : function () { console.log('draw')},
-                onSelect  : function (date) {console.log(date)}
+                onShow  : function () { console.log('show')},
+                onClose : function () { console.log('close')},
+                onDraw  : function () { console.log('draw')},
+                onSelect: function (date) {console.log(date)},
+                theme   : 'xxjinwei'
 
             })
             d2.setMinDate(new Date('2016/04/09'))

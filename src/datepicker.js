@@ -19,6 +19,9 @@
         yearRange: [2000, 2020],
         minDate  : undefined,
 
+        // custom class
+        theme: undefined,
+
         // date range
         startRange: undefined,
         endRange  : undefined,
@@ -139,6 +142,9 @@
 
                 // add picker to page
                 $('body').append(this.picker)
+
+                //custom
+                this.theme && this.picker.addClass(this.theme)
 
                 // flag for first time show
                 this.firstShown = true
