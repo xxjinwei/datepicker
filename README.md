@@ -1,2 +1,5 @@
 # datepicker
-datepicker
+```
+a baidu-style datepicker
+
+```
