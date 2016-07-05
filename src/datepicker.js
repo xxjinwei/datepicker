@@ -541,7 +541,7 @@
 
         disable: function () {
             this.disabled = true
-            this.group.addClass('disabled')
+            this.group.addClass(disabledClass)
         },
 
         destroy: function () {
