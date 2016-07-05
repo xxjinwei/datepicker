@@ -2,19 +2,28 @@
  * @file datepicker
  * @author jinwei01
  */
-;(function () {
+;(function (UI, undefined) {
 
     var idCounter = 0
 
-    // class conf
+    // states class
+    var activeClass   = 'active'
     var selectedClass = 'selected'
     var disabledClass = 'disabled'
     var hiddenClass   = 'hidden'
+    var inrangeClass  = 'inrange'
+    var istodayClass  = 'istoday'
+
+    // structure class
+    var rootClass  = 'datepicker-group'
+    var fieldClass = 'datepicker-input'
+    var iconClass  = 'datepicker-icon'
 
     // conf
     var defaultConf = {
         field       : null,
         triggerEvent: 'click',
+        autohide    : true,
 
         yearRange: [2000, 2020],
         minDate  : undefined,
@@ -36,15 +45,17 @@
         i18n  : {
             yearUnit: '年',
             months  : ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-            days    : ['日', '一', '二', '三', '四', '五', '六'],
+            days    : ['日', '一', '二', '三', '四', '五', '六']
         }
     }
 
+    var pickerIconTpl = '<i class="datepicker-icon"></i>'
     // datepicker structure
     var pickerTpl = [
         '<div class="datepicker" style="display: none">',
             '<div class="datepicker-header">',
-                '<i class="datepicker-prev"></i>', // prev
+                '<i class="datepicker-prev-year"></i>', // prev year
+                '<i class="datepicker-prev-month"></i>', // prev month
                 '<div class="datepicker-select datepicker-year">', // year select
                     '<label></label>',
                     '<select></select>',
@@ -53,13 +64,19 @@
                     '<label></label>',
                     '<select></select>',
                 '</div>',
-                '<i class="datepicker-next"></i>', // next
+                '<i class="datepicker-next-month"></i>', // next month
+                '<i class="datepicker-next-year"></i>', // next year
             '</div>',
             '<table class="datepicker-calendar">',
                 '<thead>',
                     '<tr class="datepicker-dayofweek"></tr>', // week
                 '</thead>',
                 '<tbody class="datepicker-days"></body>', // grid
+                '<tfoot>',
+                    '<tr>',
+                        '<td colspan="7"><span class="datepicker-today">今天</span></td>', // to today
+                    '</tr>',
+                '</tfoot>',
             '</table>',
         '</div>'
     ].join('')
@@ -73,24 +90,20 @@
 
     function zeroPad (str, len) {
         len = len || 2
-        return ('0' + str).slice(-len)
+        return ('0000' + str).slice(-len)
     }
 
-    function getNow () {
-        return new Date()
+    function getToday () {
+        return parseDate(new Date)
     }
 
-    function toDate (dateString) {
-        if (!dateString) {
-            return null
-        }
-        if (dateString instanceof Date) {
-            return dateString
-        }
-        return new Date(dateString)
+    function parseDate (dateString) {
+        var d
+        d = dateString instanceof Date ? dateString: new Date(dateString)
+        return new Date([d.getFullYear(), d.getMonth() + 1, d.getDate()].join('/'))
     }
 
-    function toDateString (date, format) {
+    function formatDate (date, format) {
         var map = {
             'm': date.getMonth() + 1,
             'd': date.getDate()
@@ -122,32 +135,45 @@
         this.init()
     }
 
+    // static methods
+    Datepicker.parseDate      = parseDate
+    Datepicker.formatDate     = formatDate
+    Datepicker.getSizeOfMonth = getSizeOfMonth
+
+
     Datepicker.prototype = {
         constructor: Datepicker,
 
         // create picker
         init: function () {
             if (!this.inited) {
-                this.picker      = $(pickerTpl)
-                this.header      = $('.datepicker-header', this.picker)
-                this.calendar    = $('.datepicker-calendar', this.picker)
-                this.prevNav     = $('.datepicker-prev', this.header)
-                this.nextNav     = $('.datepicker-next', this.header)
-                this.yearLabel   = $('.datepicker-year label', this.header)
-                this.yearSelect  = $('.datepicker-year select', this.header)
-                this.monthLabel  = $('.datepicker-month label', this.header)
-                this.monthSelect = $('.datepicker-month select', this.header)
-                this.weekRow     = $('.datepicker-dayofweek', this.calendar)
-                this.dateGrid    = $('.datepicker-days', this.picker)
+                this.field.wrap('<div class="' + rootClass + '"></div>')
+                this.field.attr('readonly', 'readonly').addClass(fieldClass)
+                this.group = this.field.parent()
+                this.group.append(pickerIconTpl)
+
+                this.picker       = $(pickerTpl)
+                this.header       = $('.datepicker-header', this.picker)
+                this.calendar     = $('.datepicker-calendar', this.picker)
+                this.prevMonthNav = $('.datepicker-prev-month', this.header)
+                this.nextMonthNav = $('.datepicker-next-month', this.header)
+                this.prevYearNav  = $('.datepicker-prev-year', this.header)
+                this.nextYearNav  = $('.datepicker-next-year', this.header)
+                this.yearLabel    = $('.datepicker-year label', this.header)
+                this.yearSelect   = $('.datepicker-year select', this.header)
+                this.monthLabel   = $('.datepicker-month label', this.header)
+                this.monthSelect  = $('.datepicker-month select', this.header)
+                this.weekRow      = $('.datepicker-dayofweek', this.calendar)
+                this.dateGrid     = $('.datepicker-days', this.picker)
 
                 // add picker to page
                 $('body').append(this.picker)
 
-                //custom
+                // custom
                 this.theme && this.picker.addClass(this.theme)
 
                 // flag for first time show
-                this.firstShown = true
+                this.firstShow = true
 
                 // fill
                 this.fillYear()
@@ -162,38 +188,46 @@
         },
 
         show: function () {
-            this.actived = true
-            // set Date
-            this.setDate(this.field && this.field.val() ? new Date(this.field.val()) : undefined)
-            // show
-            this.picker.css('display', 'block')
-            // position
-            this.setPosition()
-            // call show callback
-            this.onShow();
+            if (!this.disabled) {
+                this.actived = true
+                // set Date
+                this.setDate(this.field && this.field.val() ? parseDate(this.field.val()) : undefined)
+                // show
+                this.picker.css('display', 'block')
+                // add active class
+                this.group.addClass('active')
+                // position
+                this.setPosition()
+                // call show callback
+                this.onShow()
+            }
         },
 
         close: function () {
             this.actived = false
             this.picker.css('display', 'none')
+            this.group.removeClass('active')
             // call close callback
             this.onClose()
         },
 
         setDate: function (date) {
-            var d = date
+            var d           = date
+            var dayDisabled = false
 
-            if (this.firstShown) { // first time show
-                date = date || getNow()
-                this.firstShown = false
+            if (this.firstShow) { // first time show
+                date = date || getToday()
             }
 
             if (!date) {
                 return
             }
 
+            date = parseDate(date)
+
             if (this.minDate) {
-                date = toDate(Math.max(date, this.minDate))
+                dayDisabled = date <= this.minDate
+                date        = parseDate(Math.max(date, this.minDate))
             }
 
             this.pickYear(date.getFullYear())
@@ -203,20 +237,29 @@
             this.fillDate()
 
             // auto pick the date (if has)
-            d && this.pickDate(date.getDate())
+            if (d || dayDisabled) {
+                this.pickDate(date.getDate(), true)
+            }
+
+            this.firstShow = false
         },
 
         getDate: function () {
-            return toDate([this.year, zeroPad(this.month + 1), zeroPad(this.date)].join('/'))
+            return this.date ? parseDate([this.year, this.month + 1, this.date].join('/')) : undefined
         },
 
         getDateString: function () {
-            return toDateString(this.getDate(), this.format)
+            return formatDate(this.getDate(), this.format)
         },
 
         setMinDate: function (date) {
-            this.minDate = date
-            this.fillDate()
+            var current = this.getDate()
+            this.minDate = parseDate(date)
+            if (current && current < this.minDate) {
+                this.setDate(date)
+            } else {
+                this.fillDate()
+            }
         },
 
         setMaxDate: function () {
@@ -224,13 +267,14 @@
         },
 
         setRange: function (start, end) {
-            this.startRange = start
-            this.endRange   = end
-            this.fillDate()
+            this.startRange = parseDate(start)
+            this.endRange   = parseDate(end)
+            start && end && this.fillDate()
         },
 
         clearRange: function () {
-            this.endRange = null
+            this.startRange = null
+            this.endRange   = null
             this.fillDate()
         },
 
@@ -260,7 +304,7 @@
             newYear ? this.pickYear(newYear) : this.toggleNav()
         },
 
-        pickDate: function (date) { // 1-31
+        pickDate: function (date, silent) { // 1-31
             var cell = $('td[date=' + date +']', this.dateGrid)
 
             this.date = date
@@ -273,7 +317,18 @@
 
             cell.addClass(selectedClass)
 
-            this.select()
+            // if silent, do not close
+            this.select(silent)
+        },
+
+        draw: function (date) {
+            var year  = date.getFullYear()
+            var month = date.getMonth()
+            if (year !== this.year || month !== this.month) {
+                this.pickYear(year)
+                this.pickMonth(month)
+                this.fillDate()
+            }
         },
 
         // render year select
@@ -316,7 +371,7 @@
         // render dates
         fillDate: function () {
             var dateSize  = getSizeOfMonth(this.month, this.year)
-            var start     = toDate([this.year, this.month + 1, '1'].join('/')).getDay()
+            var start     = parseDate([this.year, this.month + 1, '1'].join('/')).getDay()
             var dateIndex = 1
             var index     = 0
             var row       = 0
@@ -325,24 +380,37 @@
             var html     = ''
             var rowHtml  = []
 
-            var ranged   = this.startRange && this.endRange
-            var disabled = false
-            var inrange  = false
-            var clz      = []
+            var ranged     = this.startRange && this.endRange
+            var disabled   = false
+            var inrange    = false
+            var istoday    = false
+            var isRangeEnd = false
+            var clz        = []
 
             while (index <= 6 * 7) {
-                clz = []
+                clz        = []
+                inrange    = false
+                disabled   = false
+                istoday    = false
+                isRangeEnd = false
+
                 if (index >= start && dateIndex <= dateSize) {
-                    date     = toDate([this.year, this.month + 1, dateIndex].join('/'))
+                    date = parseDate([this.year, this.month + 1, dateIndex].join('/'))
 
                     disabled = date < this.minDate
 
                     if (ranged) {
-                        inrange = date >= this.startRange && date <= this.endRange
+                        inrange    = date >= this.startRange && date <= this.endRange
+                        // last day of range
+                        isRangeEnd = date.valueOf() === this.endRange.valueOf()
                     }
 
-                    disabled && clz.push('disabled')
-                    inrange && clz.push('inrange')
+                    istoday = getToday().valueOf() === date.valueOf()
+
+                    disabled   && clz.push(disabledClass)
+                    inrange    && clz.push(inrangeClass)
+                    istoday    && clz.push(istodayClass)
+                    isRangeEnd && clz.push(selectedClass)
 
                     rowHtml.push(
                         '<td date="' + dateIndex + (clz.length ? ('" class="' + clz.join(' ') + '"'): '"') + '>' + dateIndex + '</td>'
@@ -373,8 +441,10 @@
             var year  = this.year
             var month = this.month
 
-            this.nextNav.toggleClass(disabledClass, year >= range[1] && month === 11)
-            this.prevNav.toggleClass(disabledClass, year <= range[0] && month === 0)
+            this.nextMonthNav.toggleClass(disabledClass, year >= range[1] && month === 11)
+            this.prevMonthNav.toggleClass(disabledClass, year <= range[0] && month === 0)
+            this.nextYearNav.toggleClass(disabledClass, year >= range[1])
+            this.prevYearNav.toggleClass(disabledClass, year <= range[0])
         },
 
         setPosition: function () {
@@ -385,13 +455,14 @@
 
             this.picker.css({
                 left: offset.left + 'px',
-                top : (offset.top + height) + 'px'
+                top : (offset.top + height - 1) + 'px'
             })
         },
 
-        select: function () {
+        select: function (silent) {
             this.field.val(this.getDateString())
             this.onSelect && this.onSelect.call(this, this.getDate())
+            !silent && this.close()
         },
 
         // bind events
@@ -422,20 +493,38 @@
             })
 
             // prev month
-            this.picker.on('click.datepicker.prev', '.datepicker-prev:not(.disabled)', function () {
+            this.picker.on('click.datepicker.prevmonth', '.datepicker-prev-month:not(.disabled)', function () {
                 me.pickMonth(--me.month)
                 me.monthSelect.trigger('change')
             })
 
             // next month
-            this.picker.on('click.datepicker.next', '.datepicker-next:not(.disabled)', function () {
+            this.picker.on('click.datepicker.nextmonth', '.datepicker-next-month:not(.disabled)', function () {
                 me.pickMonth(++me.month)
                 me.monthSelect.trigger('change')
             })
 
+            // prev year
+            this.picker.on('click.datepicker.prevyear', '.datepicker-prev-year:not(.disabled)', function () {
+                me.pickYear(--me.year)
+                me.yearSelect.trigger('change')
+            })
+
+            // next year
+            this.picker.on('click.datepicker.nextyear', '.datepicker-next-year:not(.disabled)', function () {
+                me.pickYear(++me.year)
+                me.yearSelect.trigger('change')
+            })
+
             // select
-            this.picker.on('click.datepicker.select', 'td[date]:not(.selected):not(.disabled)', function (e) {
-                me.pickDate($(e.target).attr('date') * 1)
+            this.picker.on('click.datepicker.select', 'td[date]:not(.disabled)', function (e) {
+                var target = $(e.target)
+                target.hasClass(selectedClass) ? me.close() : me.pickDate(target.attr('date') * 1)
+            })
+
+            // redirect to today
+            this.picker.on('click.datepicker.today', '.datepicker-today', function () {
+                me.draw(getToday())
             })
 
             // close
@@ -448,6 +537,11 @@
             $(document).on('click.datepicker.close.' + this.uniqueId, function () {
                 me.actived && !eventFromFiled && !eventFromPicker && me.close()
             })
+        },
+
+        disable: function () {
+            this.disabled = true
+            this.group.addClass('disabled')
         },
 
         destroy: function () {
@@ -465,5 +559,5 @@
         }
     }
 
-    this.Datepicker = Datepicker
+    UI.Datepicker = Datepicker
 })(this)

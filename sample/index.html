@@ -9,6 +9,12 @@
 
         <link rel="stylesheet" href="../lib/reset.css">
         <link rel="stylesheet" href="../dist/datepicker.css">
+
+        <style>
+            .example-item {
+                padding: 30px;
+            }
+        </style>
     </head>
     <body>
     <!--
@@ -117,8 +123,14 @@
             </table>
         </div>
     -->
-        <input type="input" id="d1" readonly="readonly" value="2014/04/02">
-        <input type="input" id="d2" readonly="readonly">
+        <div class="example-item">
+            <input type="input" id="d1" readonly="readonly" value="2014/04/02">
+        </div>
+        <div class="example-item">
+            <input type="input" id="d2" readonly="readonly">
+        </div>
+
+
         <script src="../lib/jquery.js"></script>
         <script src="../dist/datepicker.js"></script>
         <script>
@@ -148,7 +160,7 @@
 
             })
             d2.setMinDate(new Date('2016/04/09'))
-            d2.setRange(new Date('2016/04/08'), new Date('2017/02/04'))
+            // d2.setRange(new Date('2016/04/08'), new Date('2017/02/04'))
         </script>
     </body>
 </html>
